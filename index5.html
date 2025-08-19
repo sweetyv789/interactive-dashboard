@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+    :root {
+        --primary: #6366f1;
+        --secondary: #06b6d4;
+        --light-bg: #f3f4f6;
+        --dark-bg: #0f172a;
+        --card-light: #ffffffcc;
+        --card-dark: #1e293bcc;
+        --text-light: #1f2937;
+        --text-dark: #f1f5f9;
+        --gradient: linear-gradient(135deg, #6366f1, #06b6d4);
+    }
+
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: var(--light-bg);
+        color: var(--text-light);
+        display: flex;
+        transition: background 0.5s, color 0.5s;
+    }
+    body.dark {
+        background: var(--dark-bg);
+        color: var(--text-dark);
+    }
+
+    /* Sidebar */
+    .sidebar {
+        width: 220px;
+        background: var(--gradient);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        transition: width 0.3s;
+        box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+        position: fixed;
+        top: 60px; /* below topbar */
+        bottom: 0;
+    }
+    .sidebar.collapsed {
+        width: 70px;
+    }
+    .nav-links {
+        flex: 1;
+        margin-top: 10px;
+    }
+    .nav-links a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 1rem;
+        color: white;
+        text-decoration: none;
+        transition: background 0.3s;
+        cursor: pointer;
+    }
+    .nav-links a:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    .sidebar.collapsed .nav-links a span {
+        display: none;
+    }
+
+    .theme-toggle {
+        background: rgba(255, 255, 255, 0.25);
+        border: none;
+        padding: 0.9rem;
+        color: white;
+        cursor: pointer;
+        text-align: center;
+        font-size: 1.2rem;
+        transition: 0.3s;
+    }
+    .theme-toggle:hover {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Topbar */
+    .topbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: var(--gradient);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        font-weight: bold;
+        z-index: 1000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    /* Content */
+    .content {
+        margin-left: 220px;
+        margin-top: 70px;
+        padding: 1.5rem;
+        flex: 1;
+    }
+
+    /* Section (Tab style) */
+    section {
+        display: none;
+        border-radius: 15px;
+        padding: 1rem;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    body:not(.dark) section {
+        background: var(--card-light);
+    }
+    body.dark section {
+        background: var(--card-dark);
+    }
+    section.active {
+        display: block;
+        animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn {
+        from {opacity: 0; transform: translateY(10px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+
+    /* Forms */
+    form input, form button, form textarea {
+        width: 100%;
+        padding: 0.7rem;
+        margin-top: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+    }
+    form button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    form button:hover {
+        background: var(--secondary);
+    }
+
+    /* To-Do */
+    .todo-controls {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.8rem;
+    }
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+    ul li {
+        background: rgba(99,102,241,0.1);
+        margin: 0.4rem 0;
+        padding: 0.5rem 0.8rem;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    ul li button {
+        background: crimson;
+        color: white;
+        border: none;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    /* Gallery */
+    .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    .gallery img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 8px;
+        transition: transform 0.3s;
+    }
+    .gallery img:hover {
+        transform: scale(1.05);
+    }
+    .remove-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(255,0,0,0.8);
+        color: white;
+        border: none;
+        padding: 2px 5px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">🎯 All-in-One Dashboard</div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="nav-links">
+        <a onclick="openSection('contact')"><i class="fas fa-envelope"></i><span>Contact</span></a>
+        <a onclick="openSection('todo')"><i class="fas fa-tasks"></i><span>To-Do</span></a>
+        <a onclick="openSection('gallery')"><i class="fas fa-images"></i><span>Gallery</span></a>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    <button class="theme-toggle" onclick="toggleSidebar()">☰</button>
+</div>
+
+<!-- Main Content -->
+<div class="content">
+    <!-- Contact Form -->
+    <section id="contact" class="active">
+        <h2>Contact Form</h2>
+        <form id="contactForm">
+            <input type="text" id="name" placeholder="Your Name" required>
+            <input type="email" id="email" placeholder="Your Email" required>
+            <textarea id="message" placeholder="Your Message" rows="4" required></textarea>
+            <button type="submit">Submit</button>
+        </form>
+        <p id="formMessage" style="display:none;">✅ Form submitted successfully!</p>
+    </section>
+
+    <!-- To-Do List -->
+    <section id="todo">
+        <h2>Dynamic To-Do List</h2>
+        <div class="todo-controls">
+            <input type="text" id="taskInput" placeholder="Enter a new task">
+            <button onclick="addTask()">Add</button>
+        </div>
+        <input type="text" id="searchTask" placeholder="Search tasks...">
+        <ul id="taskList"></ul>
+    </section>
+
+    <!-- Gallery -->
+    <section id="gallery">
+        <h2>Dynamic Image Gallery</h2>
+        <input type="text" id="imageUrl" placeholder="Enter image URL">
+        <button onclick="addImage()">Add Image</button>
+        <div id="preview" style="margin-top:10px;"></div>
+        <div class="gallery" id="imageGallery"></div>
+    </section>
+</div>
+
+<script>
+    // Sidebar toggle
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.querySelector('.content').style.marginLeft =
+            document.getElementById('sidebar').classList.contains('collapsed') ? "80px" : "220px";
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+        document.querySelector('.theme-toggle').textContent =
+            document.body.classList.contains('dark') ? '☀️' : '🌙';
+    }
+
+    // Switch sections
+    function openSection(id) {
+        document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+    }
+
+    // Contact form
+    document.getElementById('contactForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let name = document.getElementById('name').value.trim();
+        let email = document.getElementById('email').value.trim();
+        let message = document.getElementById('message').value.trim();
+        let emailPattern = /^[^ ]+@[^ ]+\.[a-z]{2,}$/;
+        if (!name || !email || !message) {
+            alert("Please fill all fields!");
+            return;
+        }
+        if (!emailPattern.test(email)) {
+            alert("Invalid email format!");
+            return;
+        }
+        document.getElementById('formMessage').style.display = "block";
+        this.reset();
+    });
+
+    // To-Do List
+    function addTask() {
+        let taskText = document.getElementById('taskInput').value.trim();
+        if (!taskText) {
+            alert("Enter a task!");
+            return;
+        }
+        let li = document.createElement('li');
+        li.textContent = taskText;
+        let btn = document.createElement('button');
+        btn.textContent = "X";
+        btn.onclick = () => li.remove();
+        li.appendChild(btn);
+        document.getElementById('taskList').appendChild(li);
+        document.getElementById('taskInput').value = "";
+    }
+    document.getElementById('searchTask').addEventListener('input', function() {
+        let filter = this.value.toLowerCase();
+        document.querySelectorAll('#taskList li').forEach(li => {
+            li.style.display = li.textContent.toLowerCase().includes(filter) ? '' : 'none';
+        });
+    });
+
+    // Gallery
+    document.getElementById('imageUrl').addEventListener('input', function() {
+        let url = this.value.trim();
+        document.getElementById('preview').innerHTML = url ? `<img src="${url}" style="max-width:100%;border-radius:8px;">` : "";
+    });
+    function addImage() {
+        let url = document.getElementById('imageUrl').value.trim();
+        if (!url) {
+            alert("Enter an image URL!");
+            return;
+        }
+        let div = document.createElement('div');
+        div.style.position = "relative";
+        let img = document.createElement('img');
+        img.src = url;
+        let btn = document.createElement('button');
+        btn.classList.add('remove-btn');
+        btn.textContent = "X";
+        btn.onclick = () => div.remove();
+        div.appendChild(img);
+        div.appendChild(btn);
+        document.getElementById('imageGallery').appendChild(div);
+        document.getElementById('imageUrl').value = "";
+        document.getElementById('preview').innerHTML = "";
+    }
+</script>
+
+</body>
+</html>
